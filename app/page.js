@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import Alerts from './Alerts';
 
 function fmtDate(d) {
   const y = d.getFullYear(),
@@ -41,6 +42,7 @@ function last14Days() {
   return arr;
 }
 
+const norm = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const PLAT_NAMES = { mercadopago: 'Mercado Pago', naranjax: 'Naranja X', bancor: 'Bancor' };
 
 export default function Home() {
@@ -132,7 +134,7 @@ export default function Home() {
       if (data.error) throw new Error(data.error);
       setMonto('');
       setCliente('');
-      showToast('Venta guardada');
+      showToast(tipo === 'fiado' && data.saldo < 0 ? `Guardado · le quedan ${money(-data.saldo)} a favor` : tipo === 'fiado' && data.saldo > 0 ? `Guardado · debe en total ${money(data.saldo)}` : 'Venta guardada');
       loadNames();
       if (currentDate === today) fetchEntries(today);
       fetchDaysWithData();
@@ -175,7 +177,8 @@ export default function Home() {
       <header>
         <h1>Registro del almacén</h1>
         <p>{fullLabel(currentDate)}</p>
-        <div className="nav"><a href="/gastos">Gastos</a><a href="/fiados">Fiados</a><a href="/resumen">Balance mensual</a></div>
+        <div className="nav"><a href="/gastos">Gastos</a><a href="/fiados">Fiados</a><a href="/envases">Envases</a><a href="/resumen">Balance mensual</a></div>
+      <Alerts />
       </header>
 
       <div className="days">
@@ -266,13 +269,14 @@ export default function Home() {
           )}
 
           {tipo === 'fiado' && (
-            <input
-              className="cliente-input"
-              type="text"
-              placeholder="Nombre del cliente" list="clientes"
-              value={cliente}
-              onChange={(e) => setCliente(e.target.value)}
-            />
+            <>
+              <input className="cliente-input" type="text" placeholder="Nombre del cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} />
+              <div className="sugs">
+                {names.filter((n) => norm(n).includes(norm(cliente)) && norm(n) !== norm(cliente)).slice(0, 8).map((n) => (
+                  <button key={n} type="button" className="sug" onClick={() => setCliente(n)}>{n}</button>
+                ))}
+              </div>
+            </>
           )}
 
           <button className="save-btn" onClick={handleSave}>

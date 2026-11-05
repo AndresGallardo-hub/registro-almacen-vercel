@@ -11,6 +11,7 @@ export async function GET(request) {
     const sales = await sql`SELECT * FROM sales_entries WHERE date >= ${from} AND date <= ${to} ORDER BY date, ts`;
     const expenses = await sql`SELECT * FROM expenses WHERE date >= ${from} AND date <= ${to}`;
     const payments = await sql`SELECT * FROM fiado_movements WHERE kind = 'pago' AND date >= ${from} AND date <= ${to}`;
-    return Response.json({ sales, expenses, payments });
+    const deudas = await sql`SELECT name, debt FROM providers WHERE debt > 0 ORDER BY debt DESC`;
+    return Response.json({ sales, expenses, payments, deudas });
   } catch (e) { return Response.json({ error: e.message }, { status: 500 }); }
 }

@@ -91,3 +91,8 @@ header p{ margin:0; color:var(--text-muted); font-size:14px; }
 .msg{ font-size:13px; color:var(--ink); margin:10px 0 0; }
 .row-btn{ width:100%; text-align:left; background:none; border:none; padding:0; font-family:var(--sans); }
 .neg .val{ color:var(--fiado); }
+.alert{ display:flex; gap:10px; align-items:flex-start; background:var(--fiado-bg); border:1px solid var(--fiado); border-radius:10px; padding:10px 12px; margin-bottom:8px; font-size:13px; line-height:1.4; }
+.alert a{ color:var(--ink); text-decoration:underline; }
+.alert button{ border:none; background:none; color:var(--fiado); font-weight:600; font-size:12px; padding:2px 0; }
+.sugs{ display:flex; gap:6px; flex-wrap:wrap; margin:-4px 0 12px; }
+.sug{ border:1px solid var(--line); background:#fff; border-radius:999px; padding:7px 12px; font-size:13px; color:var(--ink); font-family:var(--sans); }

@@ -17,12 +17,14 @@ export async function POST(request) {
     if (!date || !amount || !tipo) return Response.json({ error: 'Faltan datos' }, { status: 400 });
     if (tipo === 'fiado' && !name) return Response.json({ error: 'Falta el nombre del cliente' }, { status: 400 });
     const rows = await sql`INSERT INTO sales_entries (date, time, ts, amount, tipo, medio, plat, cliente) VALUES (${date}, ${time}, ${ts}, ${amount}, ${tipo}, ${medio || null}, ${plat || null}, ${tipo === 'fiado' ? name : null}) RETURNING *`;
+    let saldo = null;
     if (tipo === 'fiado') {
       const k = norm(name);
       await sql`INSERT INTO fiado_accounts (key, name, balance) VALUES (${k}, ${name}, ${amount}) ON CONFLICT (key) DO UPDATE SET balance = fiado_accounts.balance + ${amount}`;
-      const n = await sql`SELECT name FROM fiado_accounts WHERE key = ${k}`;
+      const n = await sql`SELECT name, balance FROM fiado_accounts WHERE key = ${k}`;
+      saldo = n[0].balance;
       await sql`INSERT INTO fiado_movements (date, time, ts, key, name, kind, amount, sale_id) VALUES (${date}, ${time}, ${ts}, ${k}, ${n[0].name}, 'fiado', ${amount}, ${rows[0].id})`;
     }
-    return Response.json({ entry: rows[0] });
+    return Response.json({ entry: rows[0], saldo });
   } catch (e) { return Response.json({ error: e.message }, { status: 500 }); }
 }

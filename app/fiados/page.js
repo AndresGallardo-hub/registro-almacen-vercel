@@ -30,13 +30,14 @@ export default function Fiados() {
     });
     const j = await r.json();
     if (j.error) { setMsg(j.error); return; }
-    setMsg(j.resta > 0 ? `${sel.name} pagó ${money(amount)}. Resta ${money(j.resta)}` : `${sel.name} saldó toda la cuenta`);
+    setMsg(j.resta > 0 ? `${sel.name} pagó ${money(amount)}. Resta ${money(j.resta)}` : j.resta < 0 ? `${sel.name} pagó ${money(amount)}. Le quedan ${money(-j.resta)} a favor` : `${sel.name} saldó toda la cuenta`);
     setSel(null); setMonto(''); load();
   };
   const deshacer = async (id) => { await fetch('/api/fiados?id=' + id, { method: 'DELETE' }); load(); };
 
-  const deben = d.accounts.filter((a) => a.balance > 0);
-  const total = deben.reduce((s, a) => s + a.balance, 0);
+  const deben = d.accounts;
+  const total = d.accounts.reduce((s, a) => s + Math.max(a.balance, 0), 0);
+  const favor = d.accounts.reduce((s, a) => s + Math.max(-a.balance, 0), 0);
 
   return (
     <div className="wrap">
@@ -44,12 +45,12 @@ export default function Fiados() {
       <div className="nav"><a href="/">← Registro diario</a></div>
       {msg && <div className="readonly-note">{msg}</div>}
       <div className="card">
-        <h2>Quién debe</h2>
-        {deben.length === 0 ? <div className="empty">Nadie debe nada</div> : (<>
+        <h2>Cuentas de clientes</h2>
+        {deben.length === 0 ? <div className="empty">Todavía no hay clientes</div> : (<>
           {deben.map((a) => (
             <div key={a.key}>
               <button className="row-btn" onClick={() => { setSel(sel && sel.key === a.key ? null : a); setMonto(''); setMsg(''); }}>
-                <div className="summary-row"><span className="label">{a.name}</span><span className="val">{money(a.balance)}</span></div>
+                <div className="summary-row"><span className="label">{a.name}</span><span className="val">{a.balance > 0 ? money(a.balance) : a.balance < 0 ? 'A favor ' + money(-a.balance) : 'Al día'}</span></div>
               </button>
               {sel && sel.key === a.key && (
                 <div style={{ padding: '8px 0 14px' }}>
@@ -61,7 +62,7 @@ export default function Fiados() {
                   {medio === 'transferencia' && (<div className="plat-group">{Object.keys(PL).map((p) => (
                     <button key={p} className={`toggle-btn plat-btn ${plat === p ? 'active' : ''}`} onClick={() => setPlat(p)}>{PL[p]}</button>))}</div>)}
                   <div className="btn-group">
-                    <button className="toggle-btn" onClick={() => setMonto(String(a.balance))}>Pagó todo</button>
+                    {a.balance > 0 && <button className="toggle-btn" onClick={() => setMonto(String(a.balance))}>Pagó todo</button>}
                     <button className="save-btn" style={{ flex: 2 }} onClick={pagar}>Registrar pago</button>
                   </div>
                 </div>
@@ -69,6 +70,7 @@ export default function Fiados() {
             </div>
           ))}
           <div className="summary-row total"><span className="label">Total que te deben</span><span className="val">{money(total)}</span></div>
+          {favor > 0 && <div className="summary-row"><span className="label">Saldo a favor de clientes</span><span className="val">{money(favor)}</span></div>}
         </>)}
       </div>
       <div className="card">

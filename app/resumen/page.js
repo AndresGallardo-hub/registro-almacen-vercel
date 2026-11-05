@@ -16,16 +16,16 @@ const Row = ({ cls, label, val, indent, neg }) => (
 
 export default function Balance() {
   const [month, setMonth] = useState(initial());
-  const [data, setData] = useState({ sales: [], expenses: [], payments: [] });
+  const [data, setData] = useState({ sales: [], expenses: [], payments: [], deudas: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/summary?month=${month}`).then((r) => r.json()).then((j) => setData({ sales: j.sales || [], expenses: j.expenses || [], payments: j.payments || [] })).finally(() => setLoading(false));
+    fetch(`/api/summary?month=${month}`).then((r) => r.json()).then((j) => setData({ sales: j.sales || [], expenses: j.expenses || [], payments: j.payments || [], deudas: j.deudas || [] })).finally(() => setLoading(false));
   }, [month]);
 
   const t = useMemo(() => {
-    let ef = 0, tr = 0, fi = 0, cob = 0, gas = 0;
+    let ef = 0, tr = 0, fi = 0, cob = 0, gas = 0, pag = 0;
     const pl = { mercadopago: 0, naranjax: 0, bancor: 0 }, dia = {}, prov = {};
     data.sales.forEach((e) => {
       dia[e.date] = (dia[e.date] || 0) + e.amount;
@@ -34,9 +34,9 @@ export default function Balance() {
       else { tr += e.amount; if (e.plat) pl[e.plat] += e.amount; }
     });
     data.payments.forEach((p) => { cob += p.amount; });
-    data.expenses.forEach((g) => { gas += g.amount; prov[g.prov_key] = prov[g.prov_key] || { name: g.prov_name, total: 0 }; prov[g.prov_key].total += g.amount; });
+    data.expenses.forEach((g) => { gas += g.amount; pag += g.paid ?? g.amount; prov[g.prov_key] = prov[g.prov_key] || { name: g.prov_name, total: 0 }; prov[g.prov_key].total += g.amount; });
     const cobrado = ef + tr + cob;
-    return { ef, tr, fi, cob, gas, pl, cobrado, vendido: ef + tr + fi, neto: cobrado - gas,
+    return { ef, tr, fi, cob, gas, pag, pl, cobrado, vendido: ef + tr + fi, neto: cobrado - gas,
       dias: Object.keys(dia).sort().map((d) => ({ d, v: dia[d] })), provs: Object.values(prov).sort((a, b) => b.total - a.total) };
   }, [data]);
 
@@ -66,7 +66,9 @@ export default function Balance() {
             <div className="summary-row" key={p.name}><span className="label">{p.name} ({Math.round((p.total / t.gas) * 100)}%)</span><span className="val">{money(p.total)}</span></div>
           ))}
           <div className="summary-row total"><span className="label">Total gastado</span><span className="val">{money(t.gas)}</span></div>
+          <Row label="Pagado en el mes (incluye pagos de deudas)" val={t.pag} />
         </div>
+        {data.deudas.length > 0 && <div className="card"><h2>Deuda actual con proveedores</h2>{data.deudas.map((x) => <Row key={x.name} label={x.name} val={x.debt} neg />)}</div>}
         <div className="card">
           <h2>Resultado del mes</h2>
           <Row label="Ingresos cobrados (efectivo + transf. + cobranzas)" val={t.cobrado} />

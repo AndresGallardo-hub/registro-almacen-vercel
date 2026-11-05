@@ -14,8 +14,8 @@ export async function POST(request) {
     const sql = getSql(); await ensureTable(sql);
     const { key, amount, medio, plat, date, time, ts } = await request.json();
     if (!key || !amount) return Response.json({ error: 'Faltan datos' }, { status: 400 });
-    const r = await sql`UPDATE fiado_accounts SET balance = balance - ${amount} WHERE key = ${key} AND balance >= ${amount} RETURNING name, balance`;
-    if (!r.length) return Response.json({ error: 'Ese monto es mayor a lo que debe' }, { status: 400 });
+    const r = await sql`UPDATE fiado_accounts SET balance = balance - ${amount} WHERE key = ${key} RETURNING name, balance`;
+    if (!r.length) return Response.json({ error: 'No se encontró la cuenta' }, { status: 400 });
     await sql`INSERT INTO fiado_movements (date, time, ts, key, name, kind, amount, medio, plat) VALUES (${date}, ${time}, ${ts}, ${key}, ${r[0].name}, 'pago', ${amount}, ${medio || 'efectivo'}, ${plat || null})`;
     return Response.json({ ok: true, resta: r[0].balance });
   } catch (e) { return Response.json({ error: e.message }, { status: 500 }); }
